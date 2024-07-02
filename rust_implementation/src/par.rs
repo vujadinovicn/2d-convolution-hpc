@@ -46,7 +46,7 @@ pub fn merge_matrices(submatrices: Vec<Array2<f64>>, num_parts: usize) -> Array2
 
 pub fn process_submatrix(submatrix: Array2<f64>, filter_matrix: &Array2<f64>, stride: usize, padding: usize, pool_size: usize, pool_stride: usize, directory: String, index: i32) -> Array2<f64> {
     let filename = format!("{}/submatrices/submatrix_{}.csv", directory, index);
-    // save_matrix(&submatrix, &filename);
+    save_matrix(&submatrix, &filename);
     let conv_output = convolution(&submatrix, filter_matrix, stride, padding, false,  directory.clone(), index);
     let relu_output = relu(&conv_output,  directory.clone(), index);
     let pool_output = max_pooling(&relu_output, pool_size, pool_stride, directory.clone(), index);

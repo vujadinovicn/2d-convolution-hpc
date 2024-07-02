@@ -10,8 +10,8 @@ def init_files():
     os.makedirs(os.path.join(directory, "pooling"), exist_ok=True)
     os.makedirs(os.path.join(directory, "output"), exist_ok=True)
 
-    # save_matrix(input_matrix, f"{directory}/input/input_matrix.csv")
-    # save_matrix(filter_matrix, f"{directory}/input/filter_matrix.csv")
+    save_matrix(input_matrix, f"{directory}/input/input_matrix.csv")
+    save_matrix(filter_matrix, f"{directory}/input/filter_matrix.csv")
 
     return directory
     
@@ -38,14 +38,14 @@ def convolution(input_matrix, filter_matrix, stride=1, padding=0, directory="seq
                 for fj in range(len(filter_matrix[0])):
                     region_sum += input_padded[i + fi][j + fj] * filter_matrix[fi][fj]
             output_matrix[i // stride][j // stride] = region_sum
-            # save_matrix(output_matrix, f"{directory}/convolution/conv_{it}.csv")
+            save_matrix(output_matrix, f"{directory}/convolution/conv_{it}.csv")
             it += 1
 
     return output_matrix
 
 def relu(matrix, directory):
     max_matrix = [[0 if element < 0 else element for element in row] for row in matrix]
-    # save_matrix(max_matrix, f"{directory}/relu/relu.csv")
+    save_matrix(max_matrix, f"{directory}/relu/relu.csv")
     return max_matrix
 
 def max_pooling(matrix, pool_size=2, stride=2, directory="seq_visualization"):
@@ -61,34 +61,27 @@ def max_pooling(matrix, pool_size=2, stride=2, directory="seq_visualization"):
                 for dj in range(pool_size)
             ]
             output_matrix[i // stride][j // stride] = max(region)
-            # save_matrix(output_matrix, f"{directory}/pooling/pool_{it}.csv")
+            save_matrix(output_matrix, f"{directory}/pooling/pool_{it}.csv")
             it += 1
     return output_matrix
 
 if __name__ == "__main__":
     import time
-    for _ in range(30):
-        start_time= time.time()
-        input_matrix = load_matrix('../data/input_matrix_3072.csv')
-        filter_matrix = load_matrix('../data/filter_matrix_2.csv')
-        mid_time = time.time()-start_time
+    start_time= time.time()
+    input_matrix = load_matrix('../data/input_matrix_8.csv')
+    filter_matrix = load_matrix('../data/filter_matrix_2.csv')
+    mid_time = time.time()-start_time
 
-        stride = 2
-        padding = 0
-        pool_size = 2
-        pool_stride = 2
+    stride = 2
+    padding = 0
+    pool_size = 2
+    pool_stride = 2
 
-        # directory = init_files()
-        directory = "ee"
+    directory = init_files()
 
-        conv_output = convolution(input_matrix, filter_matrix, stride=stride, padding=padding, directory=directory)
-        relu_output = relu(conv_output, directory=directory)
-        pool_output = max_pooling(relu_output, pool_size=pool_size, stride=pool_stride, directory=directory)
-        end_time = time.time()-start_time
-        # save_matrix(pool_output, f"{directory}/output/output_matrix.csv")
-        # print("Output:\n", pool_output)
-        # print(end_time, mid_time)
-        import csv
-        with open('weak_scaling/sequential_3072.csv', mode='a', newline='') as employee_file:
-            employee_writer = csv.writer(employee_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            employee_writer.writerow([end_time, mid_time])
+    conv_output = convolution(input_matrix, filter_matrix, stride=stride, padding=padding, directory=directory)
+    relu_output = relu(conv_output, directory=directory)
+    pool_output = max_pooling(relu_output, pool_size=pool_size, stride=pool_stride, directory=directory)
+
+    save_matrix(pool_output, f"{directory}/output/output_matrix.csv")
+    print("Output:\n", pool_output)

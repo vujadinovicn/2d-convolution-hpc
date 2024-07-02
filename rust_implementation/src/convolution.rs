@@ -31,7 +31,7 @@ pub fn convolution(input_matrix: &Array2<f64>, filter_matrix: &Array2<f64>, stri
             } else {
                 format!("{}/convolution/conv_{}_{}.csv", directory, index, k)
             };
-            // save_matrix(&output_matrix, &filename);
+            save_matrix(&output_matrix, &filename);
             // save_matrix(&output_matrix, Path::new(&directory).join("convolution").join(&filename).to_str().unwrap());
             k += 1;
         }
