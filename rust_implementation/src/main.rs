@@ -6,8 +6,8 @@ use std::path::Path;
 use csv::ReaderBuilder;
 use csv::WriterBuilder;
 use rust_implementation::seq::sequential_processing;
-use hello_cargo::par::parallel_processing;
-use hello_cargo::csv_writer::save_matrix;
+use rust_implementation::par::parallel_processing;
+use rust_implementation::csv_writer::save_matrix;
 use std::time::{Duration, Instant};
 use std::io::Write;
 use csv::Writer;
@@ -47,47 +47,143 @@ pub fn write_to_csv(filename: &str, time: u128, midtime: u128) -> Result<(), Box
 }
 
 fn main() {
-    let now = Instant::now();
-    let input_matrix = read_csv("../data/input_matrix_8.csv").unwrap();
-    let filter_matrix = read_csv("../data/filter_matrix_2.csv").unwrap();
-    let midtime = now.elapsed().as_millis();
+    for i in 0..30{
+        let now = Instant::now();
+        let input_matrix = read_csv("../data/input_matrix_512.csv").unwrap();
+        let filter_matrix = read_csv("../data/filter_matrix_2.csv").unwrap();
+        let midtime = now.elapsed().as_millis();
 
-    let stride = 2;
-    let padding = 0;
-    let pool_size = 2;
-    let pool_stride = 2;
-    let num_parts = 4;
+        let stride = 2;
+        let padding = 0;
+        let pool_size = 2;
+        let pool_stride = 2;
+        let num_parts = 1;
 
-    let seq_directory = format!("seq_visualization_i{}_f{}_s{}_p{}_ps{}_pstr{}", input_matrix.shape()[0], filter_matrix.shape()[0],
+        let seq_directory = format!("seq_visualization_i{}_f{}_s{}_p{}_ps{}_pstr{}", input_matrix.shape()[0], filter_matrix.shape()[0],
+                                stride, padding, pool_size, pool_stride);
+        let par_directory = format!("par_visualization_np{}_i{}_f{}_s{}_p{}_ps{}_pstr{}", num_parts, input_matrix.shape()[0], filter_matrix.shape()[0],
                             stride, padding, pool_size, pool_stride);
-    fs::create_dir(&seq_directory);
-    fs::create_dir(Path::new(&seq_directory).join("input"));
-    fs::create_dir(Path::new(&seq_directory).join("convolution"));
-    fs::create_dir(Path::new(&seq_directory).join("relu"));
-    fs::create_dir(Path::new(&seq_directory).join("pooling"));
-    fs::create_dir(Path::new(&seq_directory).join("output"));
-    save_matrix(&input_matrix, Path::new(&seq_directory).join("input").join("input_matrix.csv").to_str().unwrap());
-    save_matrix(&filter_matrix, Path::new(&seq_directory).join("input").join("filter_matrix.csv").to_str().unwrap());
+        // let seq_output = sequential_processing(&input_matrix, &filter_matrix, stride, padding, pool_size, pool_stride, seq_directory.clone());
+        let par_output = parallel_processing(&input_matrix, &filter_matrix, num_parts, stride, padding, pool_size, pool_stride, par_directory.clone());
+        let time = now.elapsed().as_millis();
+        // println!("{}", time);
+        write_to_csv("weak_scaling_data/parallel_512.csv", time, 1);
+    }
+    for i in 0..30{
+        let now = Instant::now();
+        let input_matrix = read_csv("../data/input_matrix_1024.csv").unwrap();
+        let filter_matrix = read_csv("../data/filter_matrix_2.csv").unwrap();
+        let midtime = now.elapsed().as_millis();
 
-    let seq_output = sequential_processing(&input_matrix, &filter_matrix, stride, padding, pool_size, pool_stride, seq_directory.clone());
-    // println!("Sequential Processing Output:\n{:?}", seq_output);
-    save_matrix(&seq_output, Path::new(&seq_directory).join("output").join("output_matrix.csv").to_str().unwrap());
+        let stride = 2;
+        let padding = 0;
+        let pool_size = 2;
+        let pool_stride = 2;
+        let num_parts = 4;
 
-
-    let par_directory = format!("par_visualization_np{}_i{}_f{}_s{}_p{}_ps{}_pstr{}", num_parts, input_matrix.shape()[0], filter_matrix.shape()[0],
+        let seq_directory = format!("seq_visualization_i{}_f{}_s{}_p{}_ps{}_pstr{}", input_matrix.shape()[0], filter_matrix.shape()[0],
+                                stride, padding, pool_size, pool_stride);
+        let par_directory = format!("par_visualization_np{}_i{}_f{}_s{}_p{}_ps{}_pstr{}", num_parts, input_matrix.shape()[0], filter_matrix.shape()[0],
                             stride, padding, pool_size, pool_stride);
-    fs::create_dir(&par_directory);
-    fs::create_dir(Path::new(&par_directory).join("input"));
-    fs::create_dir(Path::new(&par_directory).join("submatrices"));
-    fs::create_dir(Path::new(&par_directory).join("convolution"));
-    fs::create_dir(Path::new(&par_directory).join("relu"));
-    fs::create_dir(Path::new(&par_directory).join("pooling"));
-    fs::create_dir(Path::new(&par_directory).join("output"));
-    save_matrix(&input_matrix, Path::new(&par_directory).join("input").join("input_matrix.csv").to_str().unwrap());
-    save_matrix(&filter_matrix, Path::new(&par_directory).join("input").join("filter_matrix.csv").to_str().unwrap());
+        // let seq_output = sequential_processing(&input_matrix, &filter_matrix, stride, padding, pool_size, pool_stride, seq_directory.clone());
+        let par_output = parallel_processing(&input_matrix, &filter_matrix, num_parts, stride, padding, pool_size, pool_stride, par_directory.clone());
+        let time = now.elapsed().as_millis();
+        // println!("{}", time);
+        write_to_csv("weak_scaling_data/parallel_1024.csv", time, 4);
+    }
+    for i in 0..30{
+        let now = Instant::now();
+        let input_matrix = read_csv("../data/input_matrix_1536.csv").unwrap();
+        let filter_matrix = read_csv("../data/filter_matrix_2.csv").unwrap();
+        let midtime = now.elapsed().as_millis();
 
-    let par_output = parallel_processing(&input_matrix, &filter_matrix, num_parts, stride, padding, pool_size, pool_stride, par_directory.clone());
-    save_matrix(&par_output, Path::new(&par_directory).join("output").join("output_matrix.csv").to_str().unwrap());
+        let stride = 2;
+        let padding = 0;
+        let pool_size = 2;
+        let pool_stride = 2;
+        let num_parts = 9;
+
+        let seq_directory = format!("seq_visualization_i{}_f{}_s{}_p{}_ps{}_pstr{}", input_matrix.shape()[0], filter_matrix.shape()[0],
+                                stride, padding, pool_size, pool_stride);
+        let par_directory = format!("par_visualization_np{}_i{}_f{}_s{}_p{}_ps{}_pstr{}", num_parts, input_matrix.shape()[0], filter_matrix.shape()[0],
+                            stride, padding, pool_size, pool_stride);
+        // let seq_output = sequential_processing(&input_matrix, &filter_matrix, stride, padding, pool_size, pool_stride, seq_directory.clone());
+        let par_output = parallel_processing(&input_matrix, &filter_matrix, num_parts, stride, padding, pool_size, pool_stride, par_directory.clone());
+        let time = now.elapsed().as_millis();
+        // println!("{}", time);
+        write_to_csv("weak_scaling_data/parallel_1536.csv", time, 9);
+    }
+    for i in 0..30{
+        let now = Instant::now();
+        let input_matrix = read_csv("../data/input_matrix_2048.csv").unwrap();
+        let filter_matrix = read_csv("../data/filter_matrix_2.csv").unwrap();
+        let midtime = now.elapsed().as_millis();
+
+        let stride = 2;
+        let padding = 0;
+        let pool_size = 2;
+        let pool_stride = 2;
+        let num_parts = 16;
+
+        let seq_directory = format!("seq_visualization_i{}_f{}_s{}_p{}_ps{}_pstr{}", input_matrix.shape()[0], filter_matrix.shape()[0],
+                                stride, padding, pool_size, pool_stride);
+        let par_directory = format!("par_visualization_np{}_i{}_f{}_s{}_p{}_ps{}_pstr{}", num_parts, input_matrix.shape()[0], filter_matrix.shape()[0],
+                            stride, padding, pool_size, pool_stride);
+        // let seq_output = sequential_processing(&input_matrix, &filter_matrix, stride, padding, pool_size, pool_stride, seq_directory.clone());
+        let par_output = parallel_processing(&input_matrix, &filter_matrix, num_parts, stride, padding, pool_size, pool_stride, par_directory.clone());
+        let time = now.elapsed().as_millis();
+        // println!("{}", time);
+        write_to_csv("weak_scaling_data/parallel_2048.csv", time, 16);
+    }
+    for i in 0..30{
+        let now = Instant::now();
+        let input_matrix = read_csv("../data/input_matrix_2560.csv").unwrap();
+        let filter_matrix = read_csv("../data/filter_matrix_2.csv").unwrap();
+        let midtime = now.elapsed().as_millis();
+
+        let stride = 2;
+        let padding = 0;
+        let pool_size = 2;
+        let pool_stride = 2;
+        let num_parts = 25;
+
+        let seq_directory = format!("seq_visualization_i{}_f{}_s{}_p{}_ps{}_pstr{}", input_matrix.shape()[0], filter_matrix.shape()[0],
+                                stride, padding, pool_size, pool_stride);
+        let par_directory = format!("par_visualization_np{}_i{}_f{}_s{}_p{}_ps{}_pstr{}", num_parts, input_matrix.shape()[0], filter_matrix.shape()[0],
+                            stride, padding, pool_size, pool_stride);
+        // let seq_output = sequential_processing(&input_matrix, &filter_matrix, stride, padding, pool_size, pool_stride, seq_directory.clone());
+        let par_output = parallel_processing(&input_matrix, &filter_matrix, num_parts, stride, padding, pool_size, pool_stride, par_directory.clone());
+        let time = now.elapsed().as_millis();
+        // println!("{}", time);
+        write_to_csv("weak_scaling_data/parallel_2560.csv", time, 25);
+    }
+    // fs::create_dir(&seq_directory);
+    // fs::create_dir(Path::new(&seq_directory).join("input"));
+    // fs::create_dir(Path::new(&seq_directory).join("convolution"));
+    // fs::create_dir(Path::new(&seq_directory).join("relu"));
+    // fs::create_dir(Path::new(&seq_directory).join("pooling"));
+    // fs::create_dir(Path::new(&seq_directory).join("output"));
+    // save_matrix(&input_matrix, Path::new(&seq_directory).join("input").join("input_matrix.csv").to_str().unwrap());
+    // save_matrix(&filter_matrix, Path::new(&seq_directory).join("input").join("filter_matrix.csv").to_str().unwrap());
+
+    
+    // save_matrix(&seq_output, Path::new(&seq_directory).join("output").join("output_matrix.csv").to_str().unwrap());
+    
+
+    // let par_directory = format!("par_visualization_np{}_i{}_f{}_s{}_p{}_ps{}_pstr{}", num_parts, input_matrix.shape()[0], filter_matrix.shape()[0],
+                            // stride, padding, pool_size, pool_stride);
+    // fs::create_dir(&par_directory);
+    // fs::create_dir(Path::new(&par_directory).join("input"));
+    // fs::create_dir(Path::new(&par_directory).join("submatrices"));
+    // fs::create_dir(Path::new(&par_directory).join("convolution"));
+    // fs::create_dir(Path::new(&par_directory).join("relu"));
+    // fs::create_dir(Path::new(&par_directory).join("pooling"));
+    // fs::create_dir(Path::new(&par_directory).join("output"));
+    // save_matrix(&input_matrix, Path::new(&par_directory).join("input").join("input_matrix.csv").to_str().unwrap());
+    // save_matrix(&filter_matrix, Path::new(&par_directory).join("input").join("filter_matrix.csv").to_str().unwrap());
+
+    // let par_output = parallel_processing(&input_matrix, &filter_matrix, num_parts, stride, padding, pool_size, pool_stride, par_directory.clone());
+    // save_matrix(&par_output, Path::new(&par_directory).join("output").join("output_matrix.csv").to_str().unwrap());
         // let time = now.elapsed().as_millis();
         // println!("Sequential Processing Output:\n{:?}", par_output);
         // write_to_csv("strong_scaling_data_2/parallel_9.csv", time, 9);

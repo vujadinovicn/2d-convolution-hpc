@@ -24,7 +24,7 @@ pub fn max_pooling(matrix: &Array2<f64>, pool_size: usize, stride: usize, direct
                 } else {
                     format!("{}/pooling/pool_{}_{}.csv", directory, index, k)
                 };
-                save_matrix(&output_matrix, &filename);
+                // save_matrix(&output_matrix, &filename);
                 k += 1;
             }
         }

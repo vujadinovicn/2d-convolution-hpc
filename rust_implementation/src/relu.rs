@@ -9,6 +9,6 @@ pub fn relu(matrix: &Array2<f64>, directory: String, index: i32) -> Array2<f64> 
     } else {
         format!("relu_{}.csv", index)
     };
-    save_matrix(&maxx, Path::new(&directory).join("relu").join(&filename).to_str().unwrap());
+    // save_matrix(&maxx, Path::new(&directory).join("relu").join(&filename).to_str().unwrap());
     maxx
 }

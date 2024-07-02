@@ -1,41 +1,80 @@
 import numpy as np
-import h5py
+import os
 import multiprocessing as mp
+
+def init_files():
+    directory = f"par_visualization_np{num_processes}_i{input_matrix.shape[0]}_f{filter_matrix.shape[0]}_s{stride}_p{padding}_ps{pool_size}_pstr{pool_stride}"
+    os.makedirs(directory, exist_ok=True)
+    os.makedirs(os.path.join(directory, "input"), exist_ok=True)
+    os.makedirs(os.path.join(directory, "submatrices"), exist_ok=True)
+    os.makedirs(os.path.join(directory, "convolution"), exist_ok=True)
+    os.makedirs(os.path.join(directory, "relu"), exist_ok=True)
+    os.makedirs(os.path.join(directory, "pooling"), exist_ok=True)
+    os.makedirs(os.path.join(directory, "output"), exist_ok=True)
+
+    save_matrix(input_matrix, f"{directory}/input/input_matrix.csv")
+    save_matrix(filter_matrix, f"{directory}/input/filter_matrix.csv")
+
+    return directory
 
 def load_matrix(filename):
     matrix = np.loadtxt(filename, delimiter=',')
     return matrix
 
-def convolution(input_matrix, filter_matrix, stride=1, padding=0):
-    input_padded = np.pad(input_matrix, ((padding, padding), (padding, padding)), mode='constant', constant_values=0)
+def save_matrix(matrix, filename):
+    with open(filename, "w") as f:
+        np.savetxt(f, matrix, delimiter=',')
+
+def convolution(input_matrix, filter_matrix, stride=1, padding=0, idx=-1,  directory="par_visualization"):
+    input_padded = input_matrix
     filter_size = filter_matrix.shape[0]
     output_size = ((input_padded.shape[0] - filter_size) // stride) + 1
     output_matrix = np.zeros((output_size, output_size))
 
+    it = 0
+
     for i in range(0, input_padded.shape[0] - filter_size + 1, stride):
         for j in range(0, input_padded.shape[1] - filter_size + 1, stride):
-            region = input_padded[i:i + filter_size, j:j + filter_size]
-            output_matrix[i // stride, j // stride] = np.sum(region * filter_matrix)
-
+            region_sum = 0
+            for fi in range(len(filter_matrix)):
+                for fj in range(len(filter_matrix[0])):
+                    region_sum += input_padded[i + fi][j + fj] * filter_matrix[fi][fj]
+            output_matrix[i // stride][j // stride] = region_sum
+            # region = input_padded[i:i + filter_size, j:j + filter_size]
+            # output_matrix[i // stride, j // stride] = np.sum(region * filter_matrix)
+            # save_matrix(output_matrix, f"{directory}/convolution/conv_{idx}_{it}.csv")
+            it += 1
     return output_matrix
 
-def relu(matrix):
-    return np.maximum(0, matrix)
+def relu(matrix, idx=-1, directory="par_visualization"):
+    # max = np.maximum(0, matrix)
+    max = [[0 if element < 0 else element for element in row] for row in matrix]
+    # save_matrix(max, f"{directory}/relu/relu_{idx}.csv")
+    return max
 
-def max_pooling(matrix, pool_size=2, stride=2):
-    output_size = ((matrix.shape[0] - pool_size) // stride) + 1
+def max_pooling(matrix, pool_size=2, stride=2, idx=-1, directory="par_visualization"):
+    output_size = ((len(matrix) - pool_size) // stride) + 1
     output_matrix = np.zeros((output_size, output_size))
 
-    for i in range(0, matrix.shape[0] - pool_size + 1, stride):
-        for j in range(0, matrix.shape[1] - pool_size + 1, stride):
-            region = matrix[i:i + pool_size, j:j + pool_size]
-            output_matrix[i // stride, j // stride] = np.max(region)
+    it = 0
+    for i in range(0, len(matrix) - pool_size + 1, stride):
+        for j in range(0, len(matrix) - pool_size + 1, stride):
+            region = [
+                matrix[i + di][j + dj]
+                for di in range(pool_size)
+                for dj in range(pool_size)
+            ]
+            output_matrix[i // stride][j // stride] = max(region)
+            # region = matrix[i:i + pool_size, j:j + pool_size]
+            # output_matrix[i // stride, j // stride] = np.max(region)
+            # save_matrix(output_matrix, f"{directory}/pooling/pool_{idx}_{it}.csv")
+            it += 1
 
     return output_matrix
 
 def divide_matrix(matrix, num_parts):
     submatrices = []
-    size = matrix.shape[0]
+    size = len(matrix)
     step = size // num_parts
     for i in range(0, size, step):
         for j in range(0, size, step):
@@ -55,15 +94,19 @@ def merge_matrices(submatrices, num_parts):
     return merged_matrix
 
 def process_submatrix(args):
-    submatrix, filter_matrix, stride, padding, pool_size, pool_stride = args
-    conv_output = convolution(submatrix, filter_matrix, stride, padding)
-    relu_output = relu(conv_output)
-    pool_output = max_pooling(relu_output, pool_size, pool_stride)
+    submatrix, filter_matrix, stride, padding, pool_size, pool_stride, idx, directory = args
+    # print(submatrix.shape)
+    # save_matrix(submatrix, f"{directory}/submatrices/submatrix_{idx}.csv")
+
+    conv_output = convolution(submatrix, filter_matrix, stride, padding, idx, directory)
+    relu_output = relu(conv_output, idx, directory)
+    pool_output = max_pooling(relu_output, pool_size, pool_stride, idx, directory)
     return pool_output
 
-def parallel_processing(input_matrix, filter_matrix, num_processes, stride=1, padding=0, pool_size=2, pool_stride=2):
+def parallel_processing(input_matrix, filter_matrix, num_processes, stride=1, padding=0, pool_size=2, pool_stride=2, directory="par_visualization"):
+    input_matrix = np.pad(input_matrix, ((padding, padding), (padding, padding)), mode='constant', constant_values=0)
     submatrices = divide_matrix(input_matrix, int(np.sqrt(num_processes)))
-    args = [(submatrix, filter_matrix, stride, padding, pool_size, pool_stride) for submatrix in submatrices]
+    args = [(submatrix, filter_matrix, stride, padding, pool_size, pool_stride, idx, directory) for idx, submatrix in enumerate(submatrices)]
 
     ctx = mp.get_context('spawn')
     with ctx.Pool(num_processes) as pool:
@@ -72,11 +115,54 @@ def parallel_processing(input_matrix, filter_matrix, num_processes, stride=1, pa
     return results
 
 if __name__ == "__main__":
-    input_matrix = load_matrix('../data/input_matrix_1800.csv')
-    filter_matrix = load_matrix('../data/filter_matrix_5.csv')
+    import time
+    for _ in range(30):
+        start_time= time.time()
+        input_matrix = load_matrix('../data/input_matrix_3072.csv')
+        filter_matrix = load_matrix('../data/filter_matrix_2.csv')
 
-    num_processes = 25
-    results = parallel_processing(input_matrix, filter_matrix, num_processes, stride=1, padding=1, pool_size=2, pool_stride=2)
-    output_matrix = merge_matrices(results, int(np.sqrt(num_processes)))
-    print("Output Matrix:\n", output_matrix)
+        stride = 2
+        padding = 0
+        pool_size = 2
+        pool_stride = 2
+        num_processes = 36
+
+        # directory = init_files()
+        directory = "e"
+
+        results = parallel_processing(input_matrix, filter_matrix, num_processes, stride=stride, 
+                                    padding=padding, pool_size=pool_size, pool_stride=pool_stride, directory=directory)
+        output_matrix = merge_matrices(results, int(np.sqrt(num_processes)))
+        # save_matrix(output_matrix, f"{directory}/output/output_matrix.csv")
+        end_time = time.time()-start_time
+        print(end_time)
+        # print("Output:\n", output_matrix)
+        import csv
+        with open('weak_scaling/parallel_3072.csv', mode='a', newline='') as employee_file:
+            employee_writer = csv.writer(employee_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            employee_writer.writerow([end_time, num_processes])
+
+    # num_processes = 36
+
+    # import time
+    # for i in range(10):
+    #     start_time = time.time()
+    #     # Load matrices
+    #     input_matrix = load_matrix('../data/input_matrix_1536.csv')
+    #     filter_matrix = load_matrix('../data/filter_matrix_5.csv')
+
+    #     # Apply parallel processing
+    #     results = parallel_processing(input_matrix, filter_matrix, num_processes, stride=1, padding=1, pool_size=2, pool_stride=2)
+    #     output_matrix = merge_matrices(results, int(np.sqrt(num_processes)))
+        
+    #     # print("Output Matrix:\n", output_matrix)
+    #     end_time = time.time()-start_time
+    #     # print(end_time)
+    #     import csv
+    #     with open('weak_scaling_data_5/parallel_36.csv', mode='a') as employee_file:
+    #         employee_writer = csv.writer(employee_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    #         employee_writer.writerow([end_time, num_processes])
+
+    #     if i%4==0:
+    #         print("cetri")
 
